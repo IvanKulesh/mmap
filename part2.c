@@ -21,6 +21,7 @@
 #define KEYFILE "./part1.c"
 #define RESULTFILE "./ls.tmp"
 #define HELLO 1
+#define READY 2
 
 typedef struct struct_for_file_info {
 	off_t file_size;
@@ -50,7 +51,7 @@ int get_sem_id (char key_mod);
 void* get_mmap (char* path , size_t file_size);
 
 int main () {
-	int sem_id , msg_id , i;
+	int  msg_id , i;
 	key_t msg_key;
 	size_t file_size;
 	void * mmapped_file = NULL; 
@@ -63,7 +64,6 @@ int main () {
 	} first_msg;
 	
 	umask (0);
-	sem_id = get_sem_id (1);
 	msg_key = ftok (KEYFILE , 1);
 	if (msg_key < 0)
 		my_error ("ERROR WHEN CALL FTOK!\n\0");
@@ -76,9 +76,6 @@ int main () {
 		my_error ("Can't recieve a message!\n\0");
 	
 	file_size = first_msg.file_lenght ;
-
-	if ( msgctl ( msg_id , IPC_RMID , NULL ) < 0 )
-		my_error ("Can not delete message!\n\0");
 
 	mmapped_file = get_mmap (RESULTFILE , file_size );
 	tmp_mmapped_file = mmapped_file;
@@ -105,7 +102,14 @@ int main () {
 	}
 	if ( munmap ( mmapped_file , file_size  ) < 0 )
 		my_error ("Error when unmapping!\n\0");	
-	increase_sem (sem_id);
+
+	first_msg.mtype = READY;
+	if (msgsnd (msg_id, &first_msg , 0 , 0) < 0) {
+		msgctl (msg_id , IPC_RMID , NULL );
+		my_error ("Can not send a message!\n\0");
+	}
+
+	//increase_sem (sem_id);
 	free_all_pointers ();
 	return 0;
 }

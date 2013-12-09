@@ -21,6 +21,7 @@
 #define KEYFILE "./part1.c"
 #define RESULTFILE "./ls.tmp"
 #define HELLO 1
+#define READY 2
 
 typedef struct struct_for_file_info {
 	off_t file_size;
@@ -62,7 +63,7 @@ int main (int argc, char** argv) {
 	int number_of_files = 0;
 	int i;
 	file_info ** files_properties = NULL;
-	int sem_id , msg_id;
+	int  msg_id;
 	key_t msg_key;
 	void * mmapped_file = NULL; 
 	void *tmp_mmapped_file = NULL;
@@ -86,8 +87,6 @@ int main (int argc, char** argv) {
 			my_error ("Permission denied!\n\0");
 		my_error ("Unrecognized error occured!\n\0");
 	}
-	
-	sem_id = get_sem_id (1);
 	
 	msg_key = ftok (KEYFILE , 1);
 	if (msg_key < 0)
@@ -126,9 +125,13 @@ int main (int argc, char** argv) {
 		my_error ("Can not send a message!\n\0");
 	}
 
-	decrease_sem (sem_id);
-	if (semctl (sem_id , 0 ,  IPC_RMID , 0) < 0)
-		my_error ("Holly shit! Can not delete the semefor!\n\0");
+	//decrease_sem (sem_id);
+
+	if ( msgrcv (msg_id , &first_msg, 0 , READY , 0) < 0)
+		my_error ("Can't recieve a message!\n\0");
+
+	if ( msgctl ( msg_id , IPC_RMID , NULL ) < 0 )
+		my_error ("Can not delete message!\n\0");
 
 	if ( closedir (destination_directory) != 0)
 		my_error ("Can not close directory!\n\0");
